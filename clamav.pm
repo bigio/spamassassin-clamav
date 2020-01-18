@@ -85,16 +85,16 @@ sub check_clamav {
       $isspam = 1;
 
       # include the virus name in SpamAssassin's report
+      dbg("HIT! virus $virus found");
+      # $pms->test_log("$virus");
+      $pms->got_hit($rulename, "", ruletype => 'eval');
+
+      # add informative tag and header
+      $pms->{msg}->put_metadata('X-Spam-Virus',$header);
       $pms->test_log($virus);
     } else {
       $header = "Error (Unknown return code from Clamav: $code)";
     }
-    dbg("HIT! virus $virus found");
-    # $pms->test_log("$virus");
-    $pms->got_hit($rulename, "", ruletype => 'eval');
-
-    # add informative tag and header
-    $pms->{msg}->put_metadata('X-Spam-Virus',$header);
   } else {
     dbg("Cannot connect to Clamav on socket $conf->{clamd_sock}");
   }
