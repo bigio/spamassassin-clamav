@@ -1,0 +1,4 @@
+clamd_sock 3310
+full AV_CLAMAV eval:check_clamav()
+describe AV_CLAMAV Clamav AntiVirus detected a virus
+score AV_CLAMAV 10
