@@ -86,7 +86,6 @@ sub check_clamav {
 
       # include the virus name in SpamAssassin's report
       dbg("HIT! virus $virus found");
-      # $pms->test_log("$virus");
       $pms->got_hit($rulename, "", ruletype => 'eval');
 
       # add informative tag and header
