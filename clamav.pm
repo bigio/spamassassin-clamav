@@ -51,8 +51,17 @@ my $VERSION = 0.1;
 use Mail::SpamAssassin;
 use Mail::SpamAssassin::Plugin;
 use Mail::SpamAssassin::Util qw(untaint_var);
-use File::Scan::ClamAV;
+
 our @ISA = qw(Mail::SpamAssassin::Plugin);
+
+use constant HAS_CLAMAV => eval { require File::Scan::ClamAV; };
+
+BEGIN
+{
+    eval{
+      import File::Scan::ClamAV
+    };
+}
 
 sub dbg { Mail::SpamAssassin::Plugin::dbg ("Clamav: @_"); }
 
@@ -89,6 +98,11 @@ sub check_clamav {
 
   my $conf = $self->{main}->{registryboundaries}->{conf};
   my $rulename = $pms->get_current_eval_rule_name();
+
+  if (!HAS_CLAMAV) {
+    warn "check_clamav not supported, required module File::Scan::Clamav missing\n";
+    return 0;
+  }
 
   dbg("File::Scan::ClamAV connecting on socket $conf->{clamd_sock}");
   my $clamav = new File::Scan::ClamAV(port => untaint_var($conf->{clamd_sock}));
