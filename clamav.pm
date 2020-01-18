@@ -20,6 +20,26 @@
 # </@LICENSE>
 #
 
+=head1 NAME
+
+Mail::SpamAssassin::Plugin::Clamav - check email body using Clamav antivirus
+
+=head1 SYNOPSIS
+
+  loadplugin Mail::SpamAssassin::Plugin::Clamav
+
+  ifplugin Mail::SpamAssassin::Plugin::Clamav
+    clamd_sock 3310
+    full AV_CLAMAV eval:check_clamav()
+    describe AV_CLAMAV Clamav AntiVirus detected a virus
+  endif
+
+=head1 DESCRIPTION
+
+This plugin checks emails using Clamav antivirus.
+
+=cut
+
 package Mail::SpamAssassin::Plugin::Clamav;
 
 use strict;
