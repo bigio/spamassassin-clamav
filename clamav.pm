@@ -81,6 +81,17 @@ sub new {
 sub set_config {
     my ($self, $conf) = @_;
     my @cmds;
+
+=over 4
+
+=item clamd_sock (default: 3310)
+
+Clamd socket to connect to, by default tcp/ip connection on port 3310 is used.
+
+=back
+
+=cut
+
     push(@cmds, {
         setting => 'clamd_sock',
         default => '3310',
