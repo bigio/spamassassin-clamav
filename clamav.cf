@@ -1,4 +1,9 @@
 clamd_sock 3310
-full AV_CLAMAV eval:check_clamav()
+
+full AV_CLAMAV eval:check_clamav('OFFICIAL')
 describe AV_CLAMAV Clamav AntiVirus detected a virus
 score AV_CLAMAV 10
+
+full AV_CLAMAV_S eval:check_clamav('SecuriteInfo')
+describe AV_CLAMAV_S Clamav AntiVirus detected a virus
+score AV_CLAMAV_S 2.5

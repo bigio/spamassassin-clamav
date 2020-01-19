@@ -32,11 +32,16 @@ Mail::SpamAssassin::Plugin::Clamav - check email body using Clamav antivirus
     clamd_sock 3310
     full AV_CLAMAV eval:check_clamav()
     describe AV_CLAMAV Clamav AntiVirus detected a virus
+
+    full AV_CLAMAV_S eval:check_clamav_sanesecurity()
+    describe AV_CLAMAV Clamav AntiVirus detected a virus in SaneSecurity signatures
   endif
 
 =head1 DESCRIPTION
 
 This plugin checks emails using Clamav antivirus.
+If the parameter "OFFICIAL" is passed to C<check_clamav>
+only official signatures are checked.
 
 =cut
 
@@ -74,6 +79,7 @@ sub new {
 
     $self->set_config($mailsa->{conf});
     $self->register_eval_rule("check_clamav");
+    $self->register_eval_rule("check_clamav_sanesecurity");
 
     return $self;
 }
@@ -102,13 +108,54 @@ Clamd socket to connect to, by default tcp/ip connection on port 3310 is used.
 }
 
 sub check_clamav {
+  my ($self,$pms,$body,$name) = @_;
+
+  my $rulename = $pms->get_current_eval_rule_name();
+
+  _check_clamav(@_) unless exists $pms->{clamav_virus};
+
+  $name //= "ALL";
+
+  dbg("found virus $pms->{clamav_virus} $name");
+  if($pms->{clamav_virus} =~ /^$name.*UNOFFICIAL$/) {
+    # include the virus name in SpamAssassin's report
+    $pms->test_log($pms->{clamav_virus});
+    $pms->got_hit($rulename, "", ruletype => 'eval');
+
+    # add informative tag and header
+    $pms->{msg}->put_metadata('X-Spam-Virus', $pms->{clamav_virus});
+    return 1;
+  } elsif(($name eq "OFFICIAL") and ($pms->{clamav_virus} !~ /UNOFFICIAL$/)) {
+    # report only viruses detected in official signatures
+    $pms->test_log($pms->{clamav_virus});
+    $pms->got_hit($rulename, "", ruletype => 'eval');
+
+    # add informative tag and header
+    $pms->{msg}->put_metadata('X-Spam-Virus', $pms->{clamav_virus});
+    return 1;
+  } elsif($name eq "ALL") {
+    # report viruses detected in all
+    $pms->test_log($pms->{clamav_virus});
+    $pms->got_hit($rulename, "", ruletype => 'eval');
+
+    # add informative tag and header
+    $pms->{msg}->put_metadata('X-Spam-Virus', $pms->{clamav_virus});
+    return 1;
+  }
+  return 0;
+}
+
+sub check_clamav_sanesecurity {
+  my ($self,$pms,$body,$name) = @_;
+  return $self->check_clamav("SecuriteInfo");
+}
+
+sub _check_clamav {
   my($self, $pms, $fulltext) = @_;
 
   my $isspam = 0;
-  my $header = "";
 
   my $conf = $self->{main}->{registryboundaries}->{conf};
-  my $rulename = $pms->get_current_eval_rule_name();
 
   if (!HAS_CLAMAV) {
     warn "check_clamav not supported, required module File::Scan::Clamav missing\n";
@@ -122,22 +169,15 @@ sub check_clamav {
 
     if (!$code) {
       my $error = $clamav->errstr();
-      $header = "Error ($error)";
+      dbg("Clamd error: $error");
     } elsif ($code eq 'OK') {
-      $header = "No";
+      # No virus found
     } elsif ($code eq 'FOUND') {
-      $header = "Yes ($virus)";
       $isspam = 1;
 
-      # include the virus name in SpamAssassin's report
-      dbg("HIT! virus $virus found");
-      $pms->test_log($virus);
-      $pms->got_hit($rulename, "", ruletype => 'eval');
-
-      # add informative tag and header
-      $pms->{msg}->put_metadata('X-Spam-Virus',$header);
+      $pms->{clamav_virus} = $virus;
     } else {
-      $header = "Error (Unknown return code from Clamav: $code)";
+      dbg("Error (Unknown return code from Clamav: $code");
     }
   } else {
     dbg("Cannot connect to Clamav on socket $conf->{clamd_sock}");
