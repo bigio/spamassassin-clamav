@@ -116,6 +116,7 @@ sub check_clamav {
 
   $name //= "ALL";
 
+  return 0 if not defined $pms->{clamav_virus};
   dbg("found virus $pms->{clamav_virus} $name");
   if($pms->{clamav_virus} =~ /^$name.*UNOFFICIAL$/) {
     # include the virus name in SpamAssassin's report
