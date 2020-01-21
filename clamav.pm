@@ -34,7 +34,7 @@ Mail::SpamAssassin::Plugin::Clamav - check email body using Clamav antivirus
     describe AV_CLAMAV Clamav AntiVirus detected a virus
 
     full AV_CLAMAV_S eval:check_clamav_sanesecurity()
-    describe AV_CLAMAV Clamav AntiVirus detected a virus in SaneSecurity signatures
+    describe AV_CLAMAV_S Clamav AntiVirus detected a virus in SaneSecurity signatures
   endif
 
 =head1 DESCRIPTION
