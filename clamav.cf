@@ -7,3 +7,8 @@ score AV_CLAMAV 10
 full AV_CLAMAV_S eval:check_clamav('SecuriteInfo')
 describe AV_CLAMAV_S Clamav AntiVirus detected a virus
 score AV_CLAMAV_S 2.5
+
+if can(Mail::SpamAssassin::Conf::feature_subjprefix)
+  subjprefix AV_CLAMAV ***VIRUS***
+  subjprefix AV_CLAMAV_S ***VIRUS***
+endif
