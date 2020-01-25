@@ -41,7 +41,8 @@ Mail::SpamAssassin::Plugin::Clamav - check email body using Clamav antivirus
 
 This plugin checks emails using Clamav antivirus.
 If the parameter "OFFICIAL" is passed to C<check_clamav>
-only official signatures are checked.
+only official signatures are matched, if the parameter "UNOFFICIAL"
+is used only unofficial rules are matched.
 
 =cut
 
@@ -127,6 +128,14 @@ sub check_clamav {
     $pms->{msg}->put_metadata('X-Spam-Virus', $pms->{clamav_virus});
     return 1;
   } elsif(($name eq "OFFICIAL") and ($pms->{clamav_virus} !~ /UNOFFICIAL$/)) {
+    # report only viruses detected in official signatures
+    $pms->test_log($pms->{clamav_virus});
+    $pms->got_hit($rulename, "", ruletype => 'eval');
+
+    # add informative tag and header
+    $pms->{msg}->put_metadata('X-Spam-Virus', $pms->{clamav_virus});
+    return 1;
+  } elsif(($name eq "UNOFFICIAL") and ($pms->{clamav_virus} =~ /UNOFFICIAL$/)) {
     # report only viruses detected in official signatures
     $pms->test_log($pms->{clamav_virus});
     $pms->got_hit($rulename, "", ruletype => 'eval');
