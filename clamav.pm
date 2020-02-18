@@ -60,12 +60,20 @@ use Mail::SpamAssassin::Util qw(untaint_var);
 
 our @ISA = qw(Mail::SpamAssassin::Plugin);
 
-use constant HAS_CLAMAV => eval { require File::Scan::ClamAV; };
+use constant HAS_SCAN_CLAMAV => eval { require File::Scan::ClamAV; };
+use constant HAS_CLIENT_CLAMAV => eval { require ClamAV::Client; };
 
 BEGIN
 {
     eval{
       import File::Scan::ClamAV
+    };
+}
+
+BEGIN
+{
+    eval{
+      import ClamAV::Client
     };
 }
 
@@ -167,15 +175,25 @@ sub _check_clamav {
 
   my $conf = $self->{main}->{registryboundaries}->{conf};
 
-  if (!HAS_CLAMAV) {
+  if (!HAS_SCAN_CLAMAV and !HAS_CLIENT_CLAMAV) {
     warn "check_clamav not supported, required module File::Scan::Clamav missing\n";
     return 0;
   }
 
   dbg("File::Scan::ClamAV connecting on socket $conf->{clamd_sock}");
-  my $clamav = new File::Scan::ClamAV(port => untaint_var($conf->{clamd_sock}));
+  my $clamav;
+  if(HAS_SCAN_CLAMAV) {
+    $clamav = new File::Scan::ClamAV(port => untaint_var($conf->{clamd_sock}));
+  } elsif(HAS_CLIENT_CLAMAV) {
+    $clamav = new ClamAV::Client(socket_port => untaint_var($conf->{clamd_sock}));
+  }
   if($clamav->ping) {
-    my($code, $virus) = $clamav->streamscan(${$fulltext});
+    my($code, $virus);
+    if(HAS_SCAN_CLAMAV) {
+      ($code, $virus) = $clamav->streamscan(${$fulltext});
+    } elsif(HAS_CLIENT_CLAMAV) {
+      ($code, $virus) = $clamav->scan_scalar(\${$fulltext});
+    }
 
     if (!$code) {
       my $error = $clamav->errstr();
